@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script> 
+        // Function to get URL query parameters
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // Check URL for form type on page load
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const formType = getQueryParam('form');
+            if (formType === 'signup') {
+                switchToSignup();
+            } else {
+                // Default to login if no parameter or unknown parameter
+                switchToLogin();
+            }
+        });
+
+    </script>
+    <style>
+        /* CSS Variables for easy customization */
+        :root {
+            /* Text Colors */
+            --text-color-default: #1f2937; /* gray-900 */
+            --text-color-secondary: #4b5563; /* gray-700 */
+            --text-color-light: #6b7280; /* gray-500 */
+            --text-color-link: #2563eb; /* blue-600 */
+            --text-color-link-hover: #3b82f6; /* blue-500 */
+
+            /* Background Colors */
+            --bg-card: #ffffff;
+            --bg-auth-screen-overlay: rgba(255, 255, 255, 0.9);
+            --bg-button-primary: #2563eb; /* blue-600 */
+            --bg-button-primary-hover: #1d4ed8; /* blue-700 */
+            --bg-button-secondary: #10b981; /* green-600 */
+            --bg-button-secondary-hover: #059669; /* green-700 */
+            --bg-button-danger: #ef4444; /* red-600 */
+            --bg-button-danger-hover: #dc2626; /* red-700 */
+            --bg-button-neutral: #f3f4f6; /* gray-100 */
+            --bg-button-neutral-hover: #e5e7eb; /* gray-200 */
+            --bg-stat-blue: #eff6ff; /* blue-50 */
+            --bg-stat-green: #ecfdf5; /* green-50 */
+            --bg-stat-red: #fef2f2; /* red-50 */
+            --bg-modal-header-blue: #dbeafe; /* blue-100 */
+            --bg-modal-header-green: #d1fae5; /* green-100 */
+            --bg-modal-header-red: #fee2e2; /* red-100 */
+            --bg-modal-header-yellow: #fffbeb; /* yellow-100 */
+
+            /* Border Colors */
+            --border-color-default: #d1d5db; /* gray-300 */
+            --border-color-divider: #e5e7eb; /* gray-200 */
+
+            /* Focus/Ring Colors */
+            --focus-ring-color: #3b82f6; /* blue-500 */
+
+            /* Hover Effects */
+            --hover-transform-y: -5px;
+            --hover-box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        #auth-screen {
+            background-image: url('image/bg-in.png'); /* Relative path */
+            background-size: cover;
+            background-position: center;
+        }
+
+        #auth-screen > div {
+            background-color: var(--bg-auth-screen-overlay);
+            backdrop-filter: blur(5px);
+        }
+        .card-hover:hover {
+            transform: var(--hover-transform-y);
+            box-shadow: var(--hover-box-shadow);
+        }
+        .document-table {
+            min-width: 1200px;
+        }
+        #toast {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* New Sidebar and Content Styles */
+        .sidebar {
+            transition: transform 0.3s ease;
+            transform: translateX(0); /* Default visible state */
+        }
+        .sidebar-hidden {
+            transform: translateX(-100%);
+        }
+        .content-expanded {
+            margin-left: 0; /* Full width when sidebar is hidden */
+            width: 100%;
+        }
+        .content-with-sidebar {
+            margin-left: 208px; /* 52 (w-52) * 4px/unit = 208px */
+            width: calc(100% - 208px);
+        }
+        
+        /* Logo Centering */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1.5rem; /* Adjust as needed for spacing */
+        }
+        .logo-container img {
+            max-width: 100%; /* Ensure image scales within container */
+            height: auto;
+        }
+        #main-content {
+        max-height: calc(100vh - 64px); /* Adjust based on the height of the navbar */
+        overflow-y: auto; /* Enable vertical scrolling */
+        }
+
+
+        
+        /* Mobile responsiveness for sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 50;
+                height: 100vh;
+                top: 0;
+                left: 0;
+            }
+            .content-with-sidebar {
+                margin-left: 0; /* No shift on mobile */
+                width: 100%;
+            }
+        }
+
+        /* Apply CSS variables */
+        body {
+            color: var(--text-color-default);
+        }
+        h1, h2, h3 {
+            color: var(--text-color-default);
+        }
+        label {
+            color: var(--text-color-secondary);
+        }
+        input, textarea {
+            border-color: var(--border-color-default);
+        }
+        input:focus, textarea:focus {
+            border-color: var(--focus-ring-color);
+            box-shadow: 0 0 0 1px var(--focus-ring-color); /* Tailwind's focus ring effect */
+        }
+        .bg-white {
+            background-color: var(--bg-card);
+        }
+        .bg-blue-600 {
+            background-color: var(--bg-button-primary);
+        }
+        .bg-blue-600:hover {
+            background-color: var(--bg-button-primary-hover);
+        }
+        .bg-green-600 {
+            background-color: var(--bg-button-secondary);
+        }
+        .bg-green-600:hover {
+            background-color: var(--bg-button-secondary-hover);
+        }
+        .bg-red-600 {
+            background-color: var(--bg-button-danger);
+        }
+        .bg-red-600:hover {
+            background-color: var(--bg-button-danger-hover);
+        }
+        .bg-gray-100 {
+            background-color: var(--bg-button-neutral);
+        }
+        .bg-gray-100:hover {
+            background-color: var(--bg-button-neutral-hover);
+        }
+        .text-blue-600 {
+            color: var(--text-color-link);
+        }
+        .text-blue-600:hover {
+            color: var(--text-color-link-hover);
+        }
+        .bg-blue-50 {
+            background-color: var(--bg-stat-blue);
+        }
+        .bg-green-50 {
+            background-color: var(--bg-stat-green);
+        }
+        .bg-red-50 {
+            background-color: var(--bg-stat-red);
+        }
+        .bg-blue-100 {
+            background-color: var(--bg-modal-header-blue);
+        }
+        .bg-green-100 {
+            background-color: var(--bg-modal-header-green);
+        }
+        .bg-red-100 {
+            background-color: var(--bg-modal-header-red);
+        }
+        .bg-yellow-100 {
+            background-color: var(--bg-modal-header-yellow);
+        }
+        .border-gray-200 {
+            border-color: var(--border-color-divider);
+        }
+        .text-gray-500 {
+            color: var(--text-color-light);
+        }
+        .text-gray-600 {
+            color: var(--text-color-secondary);
+        }
+        .text-gray-700 {
+            color: var(--text-color-secondary);
+        }
+        .text-gray-900 {
+            color: var(--text-color-default);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center">
+        <div id="login-card" class="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-xl">
+            <div class="text-center">
+                <div class="logo-container">
+                    <img src="image/logo.png" alt="Document Management System Logo">
+                </div>
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Sign In To Your Account</h2>
+            </div>
+            <div class="mt-8 space-y-6">
+                <div class="space-y-2">
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-900">Remember Me</label>
+                    </div>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-500">Forgot Your Password?</a>
+                </div>
+                <div>
+                    <button id="login-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Sign In
+                    </button>
+                </div>
+                <div class="text-center text-sm text-gray-600">
+                    Don't Have An Account? 
+                    <button id="show-signup" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sign Up Card (initially hidden) -->
+        <div id="signup-card" class="hidden w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-xl">
+            <div class="text-center">
+                <div class="logo-container">
+                    <img src="image/logo2.png" alt="Document Management System Logo - blue folder icon with text DMS" />
+                </div>
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Create New Account</h2>
+            </div>
+            <div class="mt-8 space-y-6">
+                <div class="space-y-2">
+                    <label for="signup-name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <input id="signup-name" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="signup-email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <input id="signup-email" type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="signup-password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="signup-password" type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="signup-confirm-password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <input id="signup-confirm-password" type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <button id="signup-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Create Account
+                    </button>
+                </div>
+                <div class="text-center text-sm text-gray-600">
+                    Already Have An Account? 
+                    <button id="show-login" class="font-medium text-blue-600 hover:text-blue-500">Sign In</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Approval View -->
+        <div id="pending-view" class="hidden w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-xl text-center">
+            <div class="bg-blue-100 p-4 rounded-full inline-block mb-4">
+                <i class="fas fa-clock text-blue-500 text-4xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Your Account Is Pending Approval</h2>
+            <p class="text-gray-600 mb-6">An Administrator Will Review Your Registration And Approve Your Access To The System Soon.</p>
+            <button id="pending-logout-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Return To Login
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App (initially hidden) -->
+    <div id="app-container" class="hidden h-screen overflow-hidden flex flex-col">
+        <!-- Top Navigation (New Navbar) -->
+        <nav class="bg-white shadow-md fixed top-0 left-0 right-0 z-40">
+            <div class="flex items-center justify-between px-4 py-3">
+                <div class="flex items-center">
+                    <!-- Hamburger menu button -->
+                    <button id="toggle-sidebar-btn" class="mr-4 text-gray-700 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 class="text-xl font-semibold text-gray-800" id="page-title">Welcome to Tingog Document Management System</h1>
+                </div>
+                <!-- Other navbar content -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search Documents..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-64">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div class="relative">
+                        <button class="p-2 text-gray-500 hover:text-gray-700 relative">
+                            <i class="fas fa-bell"></i>
+                            <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content area (flex container for sidebar and main content) -->
+        <div class="flex flex-1 pt-16"> <!-- pt-16 to offset fixed navbar height -->
+            <!-- Sidebar -->
+            <aside id="sidebar" class="w-52 bg-white shadow-md h-full fixed sidebar">
+                <div class="p-4 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex items-center space-x-2">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/a446bfb3-eae3-4112-87e4-044dcdb16bb2.png" alt="DMS logo" class="h-8 w-8">
+                            <span class="text-xl font-bold text-blue-600">TDMS</span>
+                        </div>
+                        <!-- Close button for sidebar (visible on mobile) -->
+                        <button id="close-sidebar-btn" class="md:hidden text-gray-700 focus:outline-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Dashboard Section -->
+                    <div class="mb-4">
+                        <h3 class="text-xs uppercase text-gray-500 font-semibold mb-2">Dashboard</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="dashboard-content"><i class="fas fa-tachometer-alt mr-3 text-blue-600"></i><span>Dashboard</span></a></li>
+                            <li><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="incoming-documents-content"><i class="fas fa-inbox mr-3 text-indigo-500"></i><span>Incoming Documents</span></a></li>
+                            <li><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="outgoing-documents-content"><i class="fas fa-paper-plane mr-3 text-green-500"></i><span>Outgoing Documents</span></a></li>
+                            <li id="delete-requests-menu" class="hidden"><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="delete-requests-content"><i class="fas fa-trash-alt mr-3 text-red-500"></i><span>Delete Requests</span><span id="pending-requests-count" class="ml-auto inline-block px-2 py-1 text-xs font-medium text-white bg-red-500 rounded-full">0</span></a></li>
+                            <li id="admin-panel-menu" class="hidden"><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="admin-panel-content"><i class="fas fa-user-shield mr-3 text-yellow-500"></i><span>Admin Panel</span></a></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Settings Section -->
+                    <div class="mt-auto"> <!-- Pushes settings to the bottom -->
+                        <h3 class="text-xs uppercase text-gray-500 font-semibold mb-2">Settings</h3>
+                        <ul class="space-y-2">
+                            <li><a href="#" class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 sidebar-item" data-section="profile-content"><i class="fas fa-user-cog mr-3 text-purple-500"></i><span>Profile</span></a></li>
+                            <li><div class="flex items-center p-2 text-gray-700 rounded hover:bg-gray-100 cursor-pointer" id="logout-btn"><i class="fas fa-sign-out-alt mr-3 text-gray-500"></i><span>Logout</span></div></li>
+                        </ul>
+                    </div>
+
+                    <div class="p-4 border-t mt-4">
+                        <div class="flex items-center">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png" alt="User profile avatar" class="h-8 w-8 rounded-full">
+                            <div class="ml-3 overflow-hidden">
+                                <p class="text-sm font-medium text-gray-900 truncate" id="user-name">John Doe</p>
+                                <p class="text-xs text-gray-500 truncate" id="user-email">john.doe@example.com</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main id="main-content" class="flex-1 p-6 content-with-sidebar">
+                <!-- Dashboard Content -->
+                <div id="dashboard-content" class="content-section">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white/90 rounded-lg shadow-lg card-hover p-6 backdrop-blur-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Incoming Documents</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900" id="incoming-count">0</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-blue-50 text-blue-600">
+                                    <i class="fas fa-inbox text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow card-hover p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Outgoing Documents</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900" id="outgoing-count">0</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-green-50 text-green-600">
+                                    <i class="fas fa-paper-plane text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow card-hover p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Pending Requests</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900" id="pending-count">0</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-red-50 text-red-600">
+                                    <i class="fas fa-trash-alt text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Documents Table -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h2 class="text-lg font-medium text-gray-900">Recent Documents</h2>
+                            <div class="flex space-x-2">
+                                <button id="add-incoming-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <i class="fas fa-plus mr-2"></i> Incoming
+                                </button>
+                                <button id="add-outgoing-btn" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <i class="fas fa-plus mr-2"></i> Outgoing
+                                </button>
+                                <button id="refresh-docs-btn" class="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full document-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From/To</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documents-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Documents will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Incoming Documents Content -->
+                <div id="incoming-documents-content" class="content-section hidden bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-6">Incoming Documents List</h2>
+                    <p class="text-gray-600">This section will display a list of all incoming documents.</p>
+                    <!-- Placeholder for incoming documents table/list -->
+                </div>
+
+                <!-- Outgoing Documents Content -->
+                <div id="outgoing-documents-content" class="content-section hidden bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-6">Outgoing Documents List</h2>
+                    <p class="text-gray-600">This section will display a list of all outgoing documents.</p>
+                    <!-- Placeholder for outgoing documents table/list -->
+                </div>
+
+                <!-- Delete Requests Content -->
+                <div id="delete-requests-content" class="content-section hidden bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-6">Pending Delete Requests</h2>
+                    <p class="text-gray-600">This section will display documents awaiting deletion approval.</p>
+                    <!-- Placeholder for delete requests table/list -->
+                </div>
+
+                <!-- Admin Panel Content (for user approval) -->
+                <div id="admin-panel-content" class="content-section hidden bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-6">User Approval Requests</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-users-list" class="bg-white divide-y divide-gray-200">
+                                <!-- Pending users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Profile Content -->
+                <div id="profile-content" class="content-section hidden bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-6">User Profile</h2>
+                    <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-6">
+                        <div class="flex-shrink-0">
+                            <img id="profile-avatar" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png" alt="User Profile Avatar" class="h-32 w-32 rounded-full object-cover border-4 border-blue-200">
+                            <input type="file" id="upload-avatar" class="hidden" accept="image/*">
+                            <button onclick="document.getElementById('upload-avatar').click()" class="mt-2 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">Upload Photo</button>
+                        </div>
+                        <div class="flex-grow space-y-4 w-full">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Username</label>
+                                <p id="profile-username" class="mt-1 text-lg text-gray-900 font-semibold">John Doe</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Position in Office</label>
+                                <p id="profile-position" class="mt-1 text-gray-900">Staff</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email</label>
+                                <p id="profile-email" class="mt-1 text-gray-900">john.doe@example.com</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Password</label>
+                                <input type="password" id="profile-password" value="********" readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <button id="change-password-btn" class="mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300">Change Password</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Incoming Document Modal -->
+    <div id="incoming-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-inbox text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Add Incoming Document</h3>
+                            <div class="mt-2">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="incoming-subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                                        <input type="text" id="incoming-subject" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="incoming-sender" class="block text-sm font-medium text-gray-700">Sender</label>
+                                        <input type="text" id="incoming-sender" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="incoming-date" class="block text-sm font-medium text-gray-700">Date Received</label>
+                                        <input type="date" id="incoming-date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="incoming-remarks" class="block text-sm font-medium text-gray-700">Remarks</label>
+                                        <textarea id="incoming-remarks" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="incoming-file" class="block text-sm font-medium text-gray-700">Attachment</label>
+                                        <input type="file" id="incoming-file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submit-incoming-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Document
+                    </button>
+                    <button id="cancel-incoming-btn" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Outgoing Document Modal -->
+    <div id="outgoing-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-paper-plane text-green-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Add Outgoing Document</h3>
+                            <div class="mt-2">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="outgoing-subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                                        <input type="text" id="outgoing-subject" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="outgoing-recipient" class="block text-sm font-medium text-gray-700">Recipient</label>
+                                        <input type="text" id="outgoing-recipient" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="outgoing-date" class="block text-sm font-medium text-gray-700">Date Sent</label>
+                                        <input type="date" id="outgoing-date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                        <label for="outgoing-remarks" class="block text-sm font-medium text-gray-700">Remarks</label>
+                                        <textarea id="outgoing-remarks" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="outgoing-file" class="block text-sm font-medium text-gray-700">Attachment</label>
+                                        <input type="file" id="outgoing-file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submit-outgoing-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Document
+                    </button>
+                    <button id="cancel-outgoing-btn" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Request Modal -->
+    <div id="delete-request-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Request Document Deletion</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500" id="delete-document-info">Are You Sure You Want To Request Deletion Of This Document?</p>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="delete-reason" class="block text-sm font-medium text-gray-700">Reason For Deletion</label>
+                                        <textarea id="delete-reason" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="submit-delete-request-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Submit Request
+                    </button>
+                    <button id="cancel-delete-request-btn" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Action Modal -->
+    <div id="admin-action-modal" class="hidden fixed z-50 inset-0 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-clipboard-check text-yellow-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900">Process Request</h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500" id="admin-document-info">Document Details</p>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">Requested By:</p>
+                                        <p class="text-sm text-gray-500" id="requested-by">John Doe (john.doe@example.com)</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700">Reason:</p>
+                                        <p class="text-sm text-gray-500" id="request-reason">Document Contains Outdated Information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button id="approve-delete-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Approve
+                    </button>
+                    <button id="reject-delete-btn" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 max-w-xs w-full bg-white rounded-lg shadow-lg overflow-hidden pointer-events-auto transform transition-all hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i id="toast-icon" class="fas"></i>
+                </div>
+                <div class="ml-3 w-0 flex-1 pt-0.5">
+                    <p id="toast-title" class="text-sm font-medium text-gray-900"></p>
+                    <p id="toast-message" class="mt-1 text-sm text-gray-500"></p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button id="close-toast-btn" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span class="sr-only">Close</span>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="toast-progress" class="h-1 bg-blue-500"></div>
+    </div>
+
+    <script>
+        // Initialize localStorage if empty
+        if (!localStorage.getItem('users')) {
+            localStorage.setItem('users', JSON.stringify([
+                { 
+                    id: 1, 
+                    name: 'Admin User', 
+                    email: 'admin@example.com', 
+                    password: 'admin123', 
+                    approved: true, 
+                    isAdmin: true,
+                    position: 'Administrator',
+                    avatar: 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png',
+                    createdAt: new Date().toISOString()
+                },
+                { 
+                    id: 2, 
+                    name: 'Staff User', 
+                    email: 'staff@example.com', 
+                    password: 'staff123', 
+                    approved: true, 
+                    isAdmin: false,
+                    position: 'Document Controller',
+                    avatar: 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png',
+                    createdAt: new Date().toISOString()
+                }
+            ]));
+        }
+
+        if (!localStorage.getItem('documents')) {
+            localStorage.setItem('documents', JSON.stringify([
+                {
+                    id: 1,
+                    name: 'Example Document',
+                    description: 'This is an example document for demonstration purposes',
+                    fileName: 'example.pdf',
+                    fileType: 'application/pdf',
+                    uploadedBy: 1,
+                    createdAt: new Date().toISOString()
+                }
+            ]));
+        }
+
+        // Demo data (from code.html, will be managed by localStorage for users/documents)
+        let documents = [
+            { id: 1, type: "incoming", subject: "Quarterly Financial Report", from: "Finance Department", date: "2023-05-15", status: "active", remarks: "For review and approval", createdBy: 1 },
+            { id: 2, type: "outgoing", subject: "Contract Proposal", to: "ABC Corporation", date: "2023-05-18", status: "active", remarks: "Send to client for signature", createdBy: 1 },
+            { id: 3, type: "incoming", subject: "Meeting Minutes - May", from: "HR Department", date: "2023-05-21", status: "active", remarks: "For circulation", createdBy: 1 },
+            { id: 4, type: "outgoing", subject: "Project Update", to: "XYZ Ltd", date: "2023-05-25", status: "active", remarks: "Contains confidential information", createdBy: 1 }
+        ];
+
+        let deleteRequests = [
+            { id: 1, documentId: 2, requestedBy: 1, reason: "Contains outdated figures", status: "pending", createdAt: "2023-05-28" }
+        ];
+
+        // State management
+        let currentUser = null;
+        let isAdmin = false;
+        let currentDocumentForDelete = null;
+        let currentRequestForAction = null;
+
+        // DOM elements
+        const authScreen = document.getElementById('auth-screen');
+        const loginCard = document.getElementById('login-card');
+        const signupCard = document.getElementById('signup-card');
+        const pendingView = document.getElementById('pending-view');
+        const appContainer = document.getElementById('app-container');
+
+        const showSignupBtn = document.getElementById('show-signup');
+        const showLoginBtn = document.getElementById('show-login');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const pendingLogoutBtn = document.getElementById('pending-logout-btn');
+
+        const userNameElement = document.getElementById('user-name');
+        const userEmailElement = document.getElementById('user-email');
+        const incomingCountElement = document.getElementById('incoming-count');
+        const outgoingCountElement = document.getElementById('outgoing-count');
+        const pendingCountElement = document.getElementById('pending-count');
+        const documentsTableBody = document.getElementById('documents-table-body');
+        const incomingModal = document.getElementById('incoming-modal');
+        const outgoingModal = document.getElementById('outgoing-modal');
+        const deleteRequestModal = document.getElementById('delete-request-modal');
+        const adminActionModal = document.getElementById('admin-action-modal');
+        const addIncomingBtn = document.getElementById('add-incoming-btn');
+        const addOutgoingBtn = document.getElementById('add-outgoing-btn');
+        const refreshDocsBtn = document.getElementById('refresh-docs-btn');
+        const deleteRequestsMenu = document.getElementById('delete-requests-menu');
+        const adminPanelMenu = document.getElementById('admin-panel-menu');
+        const adminPanelContent = document.getElementById('admin-panel-content');
+        const pendingRequestsCount = document.getElementById('pending-requests-count');
+        const pendingUsersList = document.getElementById('pending-users-list');
+        const toast = document.getElementById('toast');
+        const pageTitle = document.getElementById('page-title');
+
+        // Profile elements
+        const profileUsername = document.getElementById('profile-username');
+        const profilePosition = document.getElementById('profile-position');
+        const profileEmail = document.getElementById('profile-email');
+        const profilePassword = document.getElementById('profile-password');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const uploadAvatarInput = document.getElementById('upload-avatar');
+        const changePasswordBtn = document.getElementById('change-password-btn');
+
+
+        // Sidebar elements (updated IDs)
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn'); // Changed ID
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn'); // New button
+        const mainContent = document.getElementById('main-content');
+
+        // Get all content sections
+        const contentSections = document.querySelectorAll('.content-section');
+
+        // Event listeners
+        showSignupBtn.addEventListener('click', switchToSignup);
+        showLoginBtn.addEventListener('click', switchToLogin);
+        loginBtn.addEventListener('click', handleLogin);
+        signupBtn.addEventListener('click', handleSignup);
+        logoutBtn.addEventListener('click', handleLogout);
+        pendingLogoutBtn.addEventListener('click', handleLogout);
+
+        // Document operations
+        addIncomingBtn.addEventListener('click', () => incomingModal.classList.remove('hidden'));
+        addOutgoingBtn.addEventListener('click', () => outgoingModal.classList.remove('hidden'));
+        refreshDocsBtn.addEventListener('click', refreshDocuments);
+
+        // Modal cancel buttons
+        document.getElementById('cancel-incoming-btn').addEventListener('click', () => incomingModal.classList.add('hidden'));
+        document.getElementById('cancel-outgoing-btn').addEventListener('click', () => outgoingModal.classList.add('hidden'));
+        document.getElementById('cancel-delete-request-btn').addEventListener('click', () => deleteRequestModal.classList.add('hidden'));
+        // Ensure this button exists in your HTML, if not, it will throw an error.
+        // If you removed the old admin modal close button, you might not need this.
+        // For now, I'll assume it's still there or you'll add it.
+        const adminModalCloseBtn = document.getElementById('close-admin-modal-btn');
+        if (adminModalCloseBtn) {
+            adminModalCloseBtn.addEventListener('click', () => adminActionModal.classList.add('hidden'));
+        }
+
+
+        // Form submissions
+        document.getElementById('submit-incoming-btn').addEventListener('click', addIncomingDocument);
+        document.getElementById('submit-outgoing-btn').addEventListener('click', addOutgoingDocument);
+        document.getElementById('submit-delete-request-btn').addEventListener('click', submitDeleteRequest);
+        document.getElementById('approve-delete-btn').addEventListener('click', () => processDeleteRequest(true));
+        document.getElementById('reject-delete-btn').addEventListener('click', () => processDeleteRequest(false));
+
+        // Sidebar navigation for Admin Panel (now handled by showSection)
+        // adminPanelMenu.addEventListener('click', () => {
+        //     showSection('admin-panel-content');
+        //     loadPendingUsers();
+        // });
+
+        // New Sidebar Toggle functionality
+        function toggleSidebar() {
+            sidebar.classList.toggle('sidebar-hidden');
+            mainContent.classList.toggle('content-expanded');
+            mainContent.classList.toggle('content-with-sidebar');
+        }
+        
+        toggleSidebarBtn.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', toggleSidebar); // Close button inside sidebar
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            // Check if the click is outside the sidebar and the toggle button, and if sidebar is visible on mobile
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggleSidebarBtn.contains(event.target) &&
+                !sidebar.classList.contains('sidebar-hidden')) {
+                toggleSidebar();
+            }
+        });
+
+        // Initialize sidebar state on page load based on screen size
+        window.addEventListener('load', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('sidebar-hidden');
+                mainContent.classList.add('content-expanded');
+                mainContent.classList.remove('content-with-sidebar'); // Ensure no margin on mobile
+            } else {
+                sidebar.classList.remove('sidebar-hidden');
+                mainContent.classList.remove('content-expanded');
+                mainContent.classList.add('content-with-sidebar'); // Ensure margin on desktop
+            }
+        });
+
+        // Adjust sidebar state on window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('sidebar-hidden');
+                mainContent.classList.add('content-expanded');
+                mainContent.classList.remove('content-with-sidebar');
+            } else {
+                sidebar.classList.remove('sidebar-hidden');
+                mainContent.classList.remove('content-expanded');
+                mainContent.classList.add('content-with-sidebar');
+            }
+        });
+
+
+        // Close toast
+        document.getElementById('close-toast-btn').addEventListener('click', () => {
+            toast.classList.add('hidden');
+        });
+
+        // Initial check on page load
+        (function() {
+            const storedUserId = localStorage.getItem('currentUser');
+            if (storedUserId) {
+                const users = JSON.parse(localStorage.getItem('users'));
+                const user = users.find(u => u.id === parseInt(storedUserId));
+                if (user) {
+                    if (user.approved) {
+                        loginSuccessful(user);
+                    } else {
+                        showPendingView();
+                    }
+                }
+            }
+        })();
+
+        // Functions
+        function switchToSignup() {
+            loginCard.classList.add('hidden');
+            pendingView.classList.add('hidden');
+            signupCard.classList.remove('hidden');
+        }
+
+        function switchToLogin() {
+            signupCard.classList.add('hidden');
+            pendingView.classList.add('hidden');
+            loginCard.classList.remove('hidden');
+        }
+
+        function handleLogin() {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showErrorToast('Validation Error', 'Please enter both email and password.');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('users'));
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                if (!user.approved) {
+                    showPendingView();
+                    showErrorToast('Login Failed', 'Your account is pending approval.');
+                    return;
+                }
+                loginSuccessful(user);
+                showSuccessToast('Login Successful', `Welcome back, ${user.name}!`);
+            } else {
+                showErrorToast('Login Failed', 'Invalid email or password');
+            }
+        }
+
+        function handleSignup() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+            if (!name || !email || !password || !confirmPassword) {
+                showErrorToast('Validation Error', 'Please fill in all fields.');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showErrorToast('Signup Failed', 'Passwords do not match.');
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users'));
+            if (users.some(u => u.email === email)) {
+                showErrorToast('Signup Failed', 'Email already in use.');
+                return;
+            }
+
+            const newUser = {
+                id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
+                name,
+                email,
+                password,
+                role: 'staff', // Default role for new signups
+                approved: false, // New users need approval
+                isAdmin: false,
+                position: 'Staff', // Default position
+                avatar: 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png', // Default avatar
+                createdAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            showPendingView();
+            showSuccessToast('Account Created', 'Your account is pending approval.');
+        }
+
+        function loginSuccessful(user) {
+            currentUser = user;
+            isAdmin = user.isAdmin;
+            localStorage.setItem('currentUser', user.id);
+            
+            authScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            
+            // Update UI based on user role
+            if (isAdmin) {
+                deleteRequestsMenu.classList.remove('hidden');
+                adminPanelMenu.classList.remove('hidden');
+                updatePendingRequestsCount();
+            } else {
+                deleteRequestsMenu.classList.add('hidden');
+                adminPanelMenu.classList.add('hidden');
+            }
+            
+            // Set user info
+            userNameElement.textContent = currentUser.name;
+            userEmailElement.textContent = currentUser.email;
+            
+            // Load data
+            refreshDocuments();
+            showSection('dashboard-content'); // Default to dashboard after login
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            isAdmin = false;
+            localStorage.removeItem('currentUser');
+            
+            appContainer.classList.add('hidden');
+            authScreen.classList.remove('hidden');
+            loginCard.classList.remove('hidden');
+            signupCard.classList.add('hidden');
+            pendingView.classList.add('hidden');
+
+            // Clear form fields
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('signup-name').value = '';
+            document.getElementById('signup-email').value = '';
+            document.getElementById('signup-password').value = '';
+            document.getElementById('signup-confirm-password').value = '';
+
+            showSuccessToast('Logged Out', 'You have been successfully logged out.');
+        }
+
+        function showPendingView() {
+            loginCard.classList.add('hidden');
+            signupCard.classList.add('hidden');
+            pendingView.classList.remove('hidden');
+        }
+
+        function refreshDocuments() {
+            updateStats();
+            renderDocumentsTable();
+        }
+
+        function updateStats() {
+            const incomingCount = documents.filter(doc => doc.type === 'incoming').length;
+            const outgoingCount = documents.filter(doc => doc.type === 'outgoing').length;
+            const pendingCount = deleteRequests.filter(req => req.status === 'pending').length;
+
+            incomingCountElement.textContent = incomingCount;
+            outgoingCountElement.textContent = outgoingCount;
+            pendingCountElement.textContent = pendingCount;
+
+            if (isAdmin) {
+                updatePendingRequestsCount();
+            }
+        }
+
+        function updatePendingRequestsCount() {
+            const pendingCount = deleteRequests.filter(req => req.status === 'pending').length;
+            pendingRequestsCount.textContent = pendingCount;
+        }
+
+        function renderDocumentsTable() {
+            documentsTableBody.innerHTML = '';
+            
+            const allUsers = JSON.parse(localStorage.getItem('users'));
+
+            documents.forEach(doc => {
+                const createdByUser = allUsers.find(u => u.id === doc.createdBy);
+                const requester = deleteRequests.find(req => req.documentId === doc.id);
+                
+                const docType = doc.type === 'incoming' ? 
+                    `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">Incoming</span>` : 
+                    `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Outgoing</span>`;
+                
+                const fromTo = doc.type === 'incoming' ? doc.from : doc.to;
+                const status = requester && requester.status === 'pending' ? 
+                    `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending Delete</span>` : 
+                    `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>`;
+                
+                const deleteBtn = requester && requester.status === 'pending' ? 
+                    '' : 
+                    `<button class="text-red-600 hover:text-red-900 mr-3 document-delete-btn" data-id="${doc.id}">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>`;
+                
+                const editBtn = requester && requester.status === 'pending' ? 
+                    '' : 
+                    `<button class="text-blue-600 hover:text-blue-900 mr-3 document-edit-btn" data-id="${doc.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>`;
+                
+                const adminActions = isAdmin && requester && requester.status === 'pending' ? 
+                    `<button class="text-purple-600 hover:text-purple-900 document-action-btn" data-id="${doc.id}">
+                        <i class="fas fa-clipboard-check"></i>
+                    </button>` : '';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${doc.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${docType}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${doc.subject}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${fromTo}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${doc.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${status}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end">
+                            ${editBtn}
+                            ${deleteBtn}
+                            ${adminActions}
+                        </div>
+                    </td>
+                `;
+                
+                documentsTableBody.appendChild(row);
+            });
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.document-delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const docId = parseInt(e.currentTarget.getAttribute('data-id'));
+                    const document = documents.find(doc => doc.id === docId);
+                    
+                    if (document) {
+                        currentDocumentForDelete = document;
+                        document.getElementById('delete-document-info').textContent = `You are requesting to delete: "${document.subject}"`;
+                        deleteRequestModal.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Add event listeners to action buttons (admin only)
+            if (isAdmin) {
+                document.querySelectorAll('.document-action-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const docId = parseInt(e.currentTarget.getAttribute('data-id'));
+                        const document = documents.find(doc => doc.id === docId);
+                        const request = deleteRequests.find(req => req.documentId === docId);
+                        const requester = allUsers.find(u => u.id === request.requestedBy);
+                        
+                        if (document && request && requester) {
+                            currentRequestForAction = request;
+                            document.getElementById('admin-document-info').textContent = `Document: "${document.subject}"`;
+                            document.getElementById('requested-by').textContent = `${requester.name} (${requester.email})`;
+                            document.getElementById('request-reason').textContent = request.reason;
+                            adminActionModal.classList.remove('hidden');
+                        }
+                    });
+                });
+            }
+        }
+
+        function addIncomingDocument() {
+            const subject = document.getElementById('incoming-subject').value;
+            const sender = document.getElementById('incoming-sender').value;
+            const date = document.getElementById('incoming-date').value;
+            const remarks = document.getElementById('incoming-remarks').value;
+            
+            if (!subject || !sender || !date) {
+                showErrorToast('Validation Error', 'Please fill in all required fields');
+                return;
+            }
+            
+            const newDoc = {
+                id: documents.length + 1,
+                type: 'incoming',
+                subject,
+                from: sender,
+                date,
+                remarks,
+                status: 'active',
+                createdBy: currentUser.id
+            };
+            
+            documents.push(newDoc);
+            refreshDocuments();
+            incomingModal.classList.add('hidden');
+            
+            // Reset form
+            document.getElementById('incoming-subject').value = '';
+            document.getElementById('incoming-sender').value = '';
+            document.getElementById('incoming-remarks').value = '';
+            
+            showSuccessToast('Document Added', 'Incoming document has been created successfully');
+        }
+
+        function addOutgoingDocument() {
+            const subject = document.getElementById('outgoing-subject').value;
+            const recipient = document.getElementById('outgoing-recipient').value;
+            const date = document.getElementById('outgoing-date').value;
+            const remarks = document.getElementById('outgoing-remarks').value;
+            
+            if (!subject || !recipient || !date) {
+                showErrorToast('Validation Error', 'Please fill in all required fields');
+                return;
+            }
+            
+            const newDoc = {
+                id: documents.length + 1,
+                type: 'outgoing',
+                subject,
+                to: recipient,
+                date,
+                remarks,
+                status: 'active',
+                createdBy: currentUser.id
+            };
+            
+            documents.push(newDoc);
+            refreshDocuments();
+            outgoingModal.classList.add('hidden');
+            
+            // Reset form
+            document.getElementById('outgoing-subject').value = '';
+            document.getElementById('outgoing-recipient').value = '';
+            document.getElementById('outgoing-remarks').value = '';
+            
+            showSuccessToast('Document Added', 'Outgoing document has been created successfully');
+        }
+
+        function submitDeleteRequest() {
+            const reason = document.getElementById('delete-reason').value;
+            
+            if (!reason) {
+                showErrorToast('Validation Error', 'Please provide a reason for deletion');
+                return;
+            }
+            
+            const newRequest = {
+                id: deleteRequests.length + 1,
+                documentId: currentDocumentForDelete.id,
+                requestedBy: currentUser.id,
+                reason,
+                status: 'pending',
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+            
+            deleteRequests.push(newRequest);
+            refreshDocuments();
+            deleteRequestModal.classList.add('hidden');
+            
+            // Reset form
+            document.getElementById('delete-reason').value = '';
+            currentDocumentForDelete = null;
+            
+            showSuccessToast('Request Submitted', 'Your deletion request has been submitted for approval');
+        }
+
+        function processDeleteRequest(approved) {
+            if (!currentRequestForAction) return;
+            
+            if (approved) {
+                // Remove the document
+                documents = documents.filter(doc => doc.id !== currentRequestForAction.documentId);
+                showSuccessToast('Request Approved', 'Document has been deleted');
+            } else {
+                showSuccessToast('Request Rejected', 'Document remains in the system');
+            }
+            
+            // Update request status
+            currentRequestForAction.status = approved ? 'approved' : 'rejected';
+            
+            refreshDocuments();
+            adminActionModal.classList.add('hidden');
+            currentRequestForAction = null;
+        }
+
+        function loadPendingUsers() {
+            pendingUsersList.innerHTML = '';
+            
+            const users = JSON.parse(localStorage.getItem('users'));
+            const pendingUsers = users.filter(u => !u.approved);
+            
+            if (pendingUsers.length === 0) {
+                pendingUsersList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No pending approval requests</td></tr>';
+                return;
+            }
+            
+            pendingUsers.forEach(user => {
+                const row = document.createElement('tr');
+                
+                const nameCell = document.createElement('td');
+                nameCell.className = 'px-6 py-4 whitespace-nowrap';
+                nameCell.textContent = user.name;
+                
+                const emailCell = document.createElement('td');
+                emailCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                emailCell.textContent = user.email;
+                
+                const dateCell = document.createElement('td');
+                dateCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                dateCell.textContent = new Date(user.createdAt).toLocaleDateString();
+                
+                const actionCell = document.createElement('td');
+                actionCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
+                
+                const approveBtn = document.createElement('button');
+                approveBtn.className = 'text-green-600 hover:text-green-900 mr-4';
+                approveBtn.textContent = 'Approve';
+                approveBtn.onclick = () => approveUser(user.id);
+                
+                const rejectBtn = document.createElement('button');
+                rejectBtn.className = 'text-red-600 hover:text-red-900';
+                rejectBtn.textContent = 'Reject';
+                rejectBtn.onclick = () => rejectUser(user.id);
+                
+                actionCell.appendChild(approveBtn);
+                actionCell.appendChild(rejectBtn);
+                
+                row.appendChild(nameCell);
+                row.appendChild(emailCell);
+                row.appendChild(dateCell);
+                actionCell.appendChild(approveBtn); // Ensure buttons are appended
+                actionCell.appendChild(rejectBtn); // Ensure buttons are appended
+                row.appendChild(actionCell);
+                
+                pendingUsersList.appendChild(row);
+            });
+        }
+
+        function approveUser(userId) {
+            const users = JSON.parse(localStorage.getItem('users'));
+            const userIndex = users.findIndex(u => u.id === userId);
+            
+            if (userIndex !== -1) {
+                users[userIndex].approved = true;
+                localStorage.setItem('users', JSON.stringify(users));
+                loadPendingUsers();
+                showSuccessToast('User Approved', `User ${users[userIndex].name} has been approved.`);
+            }
+        }
+
+        function rejectUser(userId) {
+            let users = JSON.parse(localStorage.getItem('users'));
+            const userToDelete = users.find(u => u.id === userId);
+            if (userToDelete) {
+                users = users.filter(u => u.id !== userId);
+                localStorage.setItem('users', JSON.stringify(users));
+                loadPendingUsers();
+                showErrorToast('User Rejected', `User ${userToDelete.name} has been rejected and removed.`);
+            }
+        }
+
+        // Toast functions
+        function showToast(type, title, message) {
+            const toastIcon = document.getElementById('toast-icon');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMessage = document.getElementById('toast-message');
+            const toastProgress = document.getElementById('toast-progress');
+            
+            // Set icon and color based on type
+            toastIcon.className = 'fas ' + (
+                type === 'success' ? 'fa-check-circle text-green-400' : 
+                type === 'error' ? 'fa-exclamation-circle text-red-400' :
+                'fa-info-circle text-blue-400'
+            );
+            
+            toastProgress.className = 'h-1 ' + (
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' :
+                'bg-blue-500'
+            );
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            toast.classList.remove('hidden');
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+            
+            // Reset progress bar animation
+            toastProgress.style.width = '100%';
+            toastProgress.style.transition = 'width 5s linear';
+            setTimeout(() => {
+                toastProgress.style.width = '0%';
+            }, 100);
+        }
+
+        function showSuccessToast(title, message) {
+            showToast('success', title, message);
+        }
+
+        function showErrorToast(title, message) {
+            showToast('error', title, message);
+        }
+
+        // New function to show specific content section
+        function showSection(sectionId) {
+            contentSections.forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            // Update page title
+            let titleText = '';
+            switch (sectionId) {
+                case 'dashboard-content':
+                    titleText = 'Dashboard';
+                    refreshDocuments(); // Refresh dashboard data when navigating to it
+                    break;
+                case 'incoming-documents-content':
+                    titleText = 'Incoming Documents';
+                    // You might want to load/render incoming documents here
+                    break;
+                case 'outgoing-documents-content':
+                    titleText = 'Outgoing Documents';
+                    // You might want to load/render outgoing documents here
+                    break;
+                case 'delete-requests-content':
+                    titleText = 'Delete Requests';
+                    // You might want to load/render delete requests here
+                    break;
+                case 'admin-panel-content':
+                    titleText = 'Admin Panel';
+                    loadPendingUsers(); // Load pending users when navigating to admin panel
+                    break;
+                case 'profile-content':
+                    titleText = 'User Profile';
+                    loadProfileData(); // Load user profile data
+                    break;
+                default:
+                    titleText = 'Document Management System';
+            }
+            pageTitle.textContent = titleText;
+
+            // Close sidebar on mobile after selection
+            if (window.innerWidth <= 768 && !sidebar.classList.contains('sidebar-hidden')) {
+                toggleSidebar();
+            }
+        }
+
+        // Add event listeners to all sidebar items
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default link behavior
+                const sectionId = e.currentTarget.getAttribute('data-section');
+                showSection(sectionId);
+            });
+        });
+
+        // Function to load profile data
+        function loadProfileData() {
+            if (currentUser) {
+                profileUsername.textContent = currentUser.name;
+                profilePosition.textContent = currentUser.position || 'N/A';
+                profileEmail.textContent = currentUser.email;
+                profilePassword.value = '********'; // Mask password
+                profileAvatar.src = currentUser.avatar || 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/2f2b83bd-1ed6-452b-9cc0-b6d0d52766b5.png'; // Default avatar if none
+            }
+        }
+
+        // Handle avatar upload
+        uploadAvatarInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    profileAvatar.src = e.target.result;
+                    // Optionally, save this to localStorage for persistence
+                    if (currentUser) {
+                        let users = JSON.parse(localStorage.getItem('users'));
+                        const userIndex = users.findIndex(u => u.id === currentUser.id);
+                        if (userIndex !== -1) {
+                            users[userIndex].avatar = e.target.result;
+                            localStorage.setItem('users', JSON.stringify(users));
+                            currentUser.avatar = e.target.result; // Update current user object
+                            userNameElement.textContent = currentUser.name; // Refresh sidebar user info
+                        }
+                    }
+                    showSuccessToast('Profile Updated', 'Profile picture uploaded successfully!');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle change password button (placeholder for functionality)
+        changePasswordBtn.addEventListener('click', () => {
+            showErrorToast('Feature Not Available', 'Change password functionality is not yet implemented.');
+            // In a real application, this would open a modal or navigate to a password change form.
+        });
+
+    </script>
+</body>
+</html>
